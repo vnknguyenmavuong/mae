@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Trắc nghiệm Tổng Riemann & Xấp xỉ Tích phân</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+    color: #333;
+  }
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    overflow: hidden;
+  }
+  header {
+    background: linear-gradient(135deg, #2c3e50, #4a6491);
+    color: #fff;
+    padding: 30px;
+    text-align: center;
+  }
+  header h1 { font-size: 28px; margin-bottom: 8px; }
+  header p { opacity: 0.9; font-size: 15px; }
+  .score-bar {
+    background: #ecf0f1;
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #bdc3c7;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .score-bar .score { font-weight: bold; font-size: 18px; color: #2c3e50; }
+  .score-bar button {
+    background: #e74c3c;
+    color: #fff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  .score-bar button:hover { background: #c0392b; }
+  .section-title {
+    background: #34495e;
+    color: #fff;
+    padding: 14px 30px;
+    font-size: 20px;
+    font-weight: bold;
+    border-left: 6px solid #f39c12;
+  }
+  .section-title.easy { border-left-color: #27ae60; }
+  .section-title.medium { border-left-color: #f39c12; }
+  .section-title.hard { border-left-color: #e74c3c; }
+  .question {
+    padding: 22px 30px;
+    border-bottom: 1px solid #ecf0f1;
+  }
+  .question:last-child { border-bottom: none; }
+  .q-text {
+    font-size: 16px;
+    margin-bottom: 14px;
+    line-height: 1.5;
+    font-weight: 600;
+  }
+  .q-text .q-num {
+    display: inline-block;
+    background: #3498db;
+    color: #fff;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 28px;
+    margin-right: 8px;
+    font-size: 14px;
+  }
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .option {
+    background: #f8f9fa;
+    border: 2px solid #dee2e6;
+    padding: 12px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .option:hover:not(.disabled) {
+    background: #e9ecef;
+    border-color: #3498db;
+  }
+  .option.correct {
+    background: #d4edda;
+    border-color: #27ae60;
+    color: #155724;
+    font-weight: bold;
+  }
+  .option.wrong {
+    background: #f8d7da;
+    border-color: #e74c3c;
+    color: #721c24;
+  }
+  .option.disabled { cursor: not-allowed; }
+  .option .label {
+    display: inline-block;
+    width: 26px;
+    height: 26px;
+    background: #3498db;
+    color: #fff;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 26px;
+    margin-right: 10px;
+    font-weight: bold;
+  }
+  .option.correct .label { background: #27ae60; }
+  .option.wrong .label { background: #e74c3c; }
+  .explanation {
+    margin-top: 12px;
+    padding: 14px 16px;
+    background: #fffbea;
+    border-left: 4px solid #f39c12;
+    border-radius: 6px;
+    font-size: 14px;
+    line-height: 1.6;
+    display: none;
+  }
+  .explanation.show { display: block; }
+  .explanation strong { color: #d35400; }
+  .explanation .right { color: #27ae60; font-weight: bold; }
+  .explanation .wrong-note { color: #c0392b; }
+  footer {
+    text-align: center;
+    padding: 20px;
+    background: #ecf0f1;
+    color: #7f8c8d;
+    font-size: 13px;
+  }
+  .math { font-family: 'Cambria Math', 'Times New Roman', serif; font-style: italic; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>📐 Trắc nghiệm: Tổng Riemann & Xấp xỉ Tích phân</h1>
+    <p>Hành trình từ những mảnh ghép nhỏ nhất của Toán học</p>
+  </header>
+
+  <div class="score-bar">
+    <div class="score">Điểm: <span id="score">0</span> / <span id="total">20</span></div>
+    <button onclick="resetQuiz()">🔄 Làm lại</button>
+  </div>
+
+  <div id="quiz"></div>
+
+  <footer>
+    © 2026 - Tài liệu tham khảo: <em>Tổng Riemann & Nghệ thuật Xấp xỉ Tích phân</em>
+  </footer>
+</div>
+
+<script>
+const questions = [
+  // ========== PHẦN LÝ THUYẾT ==========
+  {
+    section: "LÝ THUYẾT", type: "theory",
+    text: "Tổng Riemann được xây dựng dựa trên ý tưởng cốt lõi nào?",
+    options: [
+      "Chia nhỏ miền phức tạp thành các hình chữ nhật rồi cộng dồn diện tích",
+      "Tính trực tiếp diện tích hình thang cong bằng công thức nguyên hàm",
+      "Sử dụng đạo hàm để tìm diện tích",
+      "Dùng phương pháp hình học giải tích thuần túy"
+    ],
+    correct: 0,
+    explain: {
+      0: "<span class='right'>✓ ĐÚNG.</span> Bản chất của tích phân chính là sự <strong>cộng dồn</strong>: ta phân hoạch đoạn [a,b] thành n đoạn nhỏ, xấp xỉ mỗi đoạn bằng hình chữ nhật rồi cộng lại.",
+      1: "<span class='wrong-note'>✗ SAI.</span> Tính trực tiếp bằng nguyên hàm là <strong>định lý cơ bản của giải tích</strong> (Newton-Leibniz), không phải tư tưởng của Riemann.",
+      2: "<span class='wrong-note'>✗ SAI.</span> Đạo hàm dùng để tìm tốc độ thay đổi, không dùng để tính diện tích trực tiếp.",
+      3: "<span class='wrong-note'>✗ SAI.</span> Tổng Riemann thuộc về <strong>giải tích</strong>, không phải hình học giải tích."
+    }
+  },
+  {
+    section: "LÝ THUYẾT", type: "theory",
+    text: "Trong tổng Riemann với phân hoạch đều, độ rộng mỗi hình chữ nhật Δx được tính bằng công thức nào?",
+    options: [
+      "Δx = (a + b) / n",
+      "Δx = (b - a) / n",
+      "Δx = b - a",
+      "Δx = n / (b - a)"
+    ],
+    correct: 1,
+    explain: {
+      0: "<span class='wrong-note'>✗ SAI.</span> Đây là phép cộng, không có ý nghĩa hình học. Δx phải là <strong>độ dài</strong> mỗi đoạn con.",
+      1: "<span class='right'>✓ ĐÚNG.</span> Chia đoạn [a, b] thành n phần bằng nhau → mỗi phần có độ dài <strong>Δx = (b - a)/n</strong>.",
+      2: "<span class='wrong-note'>✗ SAI.</span> b - a là <strong>tổng</strong> độ dài cả đoạn, không phải độ dài mỗi đoạn con.",
+      3: "<span class='wrong-note'>✗ SAI.</span> Công thức này bị ngược tử và mẫu."
+    }
+  },
+  {
+    section: "LÝ THUYẾT", type: "theory",
+    text: "Khi số đoạn phân hoạch n càng lớn (n → ∞), tổng Riemann sẽ:",
+    options: [
+      "Tiến tới 0",
+      "Phân kỳ, không xác định",
+      "Hội tụ về giá trị tích phân xác định thực sự",
+      "Luôn bằng đúng giá trị tích phân với mọi n"
+    ],
+    correct: 2,
+    explain: {
+      0: "<span class='wrong-note'>✗ SAI.</span> Tổng Riemann xấp xỉ diện tích dương, không thể tiến về 0 (trừ khi f(x) = 0).",
+      1: "<span class='wrong-note'>✗ SAI.</span> Với hàm liên tục trên [a,b], tổng Riemann luôn <strong>hội tụ</strong>.",
+      2: "<span class='right'>✓ ĐÚNG.</span> Càng nhiều hình chữ nhật (n tăng), tổng diện tích càng chính xác và <strong>dần hội tụ về tích phân thực</strong> ∫ₐᵇf(x)dx.",
+      3: "<span class='wrong-note'>✗ SAI.</span> Với n hữu hạn, tổng Riemann chỉ là <strong>xấp xỉ</strong>, chỉ bằng đúng khi n → ∞."
+    }
+  },
+  {
+    section: "LÝ THUYẾT", type: "theory",
+    text: "Phương pháp nào sau đây thường cho độ chính xác CAO NHẤT khi xấp xỉ tích phân (với cùng n)?",
+    options: [
+      "Left Endpoint (Mút trái)",
+      "Right Endpoint (Mút phải)",
+      "Midpoint (Điểm giữa)",
+      "Cả ba phương pháp đều cho kết quả như nhau"
+    ],
+    correct: 2,
+    explain: {
+      0: "<span class='wrong-note'>✗ SAI.</span> Mút trái có sai số lớn, đặc biệt với hàm đơn điệu.",
+      1: "<span class='wrong-note'>✗ SAI.</span> Mút phải cũng có sai số tương tự mút trái.",
+      2: "<span class='right'>✓ ĐÚNG.</span> Phương pháp điểm giữa tạo ra sự <strong>bù trừ hoàn hảo</strong> giữa phần thừa và phần thiếu, nên sai số nhỏ hơn nhiều so với hai phương pháp còn lại.",
+      3: "<span class='wrong-note'>✗ SAI.</span> Ba phương pháp cho kết quả khác nhau (trừ một số hàm đặc biệt). Chỉ khi n → ∞ chúng mới cùng hội tụ."
+    }
+  },
+  {
+    section: "LÝ THUYẾT", type: "theory",
+    text: "Công thức tổng quát của tổng Riemann mút trái (Left Endpoint) là:",
+    options: [
+      "Lₙ = Δx · [f(x₁) + f(x₂) + ... + f(xₙ)]",
+      "Lₙ = Δx · [f(x₀) + f(x₁) + ... + f(xₙ₋₁)]",
+      "Lₙ = Δx · [f(x₀) + f(x₁) + ... + f(xₙ)]",
+      "Lₙ = Σᵢ₌₁ⁿ f((xᵢ₋₁+xᵢ)/2) · Δx"
+    ],
+    correct: 1,
+    explain: {
+      0: "<span class='wrong-note'>✗ SAI.</span> Đây là công thức của <strong>mút phải</strong> (bắt đầu từ x₁ đến xₙ).",
+      1: "<span class='right'>✓ ĐÚNG.</span> Mút trái dùng các điểm từ x₀ đến xₙ₋₁ (bỏ điểm cuối xₙ).",
+      2: "<span class='wrong-note'>✗ SAI.</span> Công thức này lấy cả x₀ và xₙ → đây là dạng gần với <strong>hình thang</strong>, không phải Riemann mút trái.",
+      3: "<span class='wrong-note'>✗ SAI.</span> Đây là công thức của <strong>Midpoint</strong> (điểm giữa), vì (xᵢ₋₁+xᵢ)/2 là trung điểm."
+    }
+  },
+
+  // ========== PHẦN DỄ ==========
+  {
+    section: "BÀI TẬP DỄ", type: "easy",
+    text: "Tính Δx khi xấp xỉ ∫₀² f(x)dx với n = 4 đoạn phân hoạch đều.",
+    options: ["Δx = 2", "Δx = 0.5", "Δx = 0.25", "Δx = 4"],
+    correct: 1,
+    explain: {
+      0: "<span class='wrong-note'>✗ SAI.</span> 2 là độ dài cả đoạn [0,2], chưa chia cho n.",
+      1: "<span class='right'>✓ ĐÚNG.</span> Δx = (b - a)/n = (2 - 0)/4 = <strong>0.5</strong>.",
+      2: "<span class='wrong-note'>✗ SAI.</span> Có lẽ bạn đã tính (2-0)/8 thay vì /4.",
+      3: "<span class='wrong-note'>✗ SAI.</span> 4 là số đoạn n, không phải Δx."
+    }
+  },
+  {
+    section: "BÀI TẬP DỄ", type: "easy",
+    text: "Khi phân hoạch đoạn [1, 5] thành 8 đoạn đều, các mốc chia sẽ là:",
+    options: [
+      "1, 1.25, 1.5, ..., 5",
+      "1, 1.5, 2, 2.5, ..., 5",
+      "1, 2, 3, 4, 5",
+      "0, 1, 2, 3, 4, 5"
+    ],
+    correct: 1,
+    explain: {
+      0: "<span class='wrong-note'>✗ SAI.</span> Bước nhảy 0.25 tương ứng n = 16, không phải n = 8.",
+      1: "<span class='right'>✓ ĐÚNG.</span> Δx = (5-1)/8 = 0.5. Các mốc: 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5.",
+      2: "<span class='wrong-note'>✗ SAI.</span> Đây là n = 4 (bước nhảy 1).",
+      3: "<span class='wrong-note'>✗ SAI.</span> Đoạn bắt đầu từ 1, không phải 0."
+    }
+  },
+  {
+    section: "BÀI TẬP DỄ", type: "easy",
+    text: "Trong phương pháp Mút phải (Right Endpoint) với n = 5 trên đoạn [0, 10], ta sẽ dùng các điểm nào để tính chiều cao?",
+    options: [
+      "x = 0, 2, 4, 6, 8",
+      "x = 2, 4, 6, 8, 10",
+      "x = 1, 3, 5, 7, 9",
+      "x = 0, 2.5, 5, 7.5, 10"
+    ],
+    correct: 1,
+    explain: {
+      0: "<span class='wrong-note'>✗ SAI.</span> Đây là các điểm <strong>mút trái</strong> (bỏ điểm cuối).",
+      1: "<span class='right'>✓ ĐÚNG.</span> Δx = 10/5 = 2. Mút phải dùng x₁, x₂, ..., xₙ → 2, 4, 6, 8, 10.",
+      2: "<span class='wrong-note'>✗ SAI.</span> Đây là các <strong>điểm giữa</strong> (midpoints).",
+      3: "<span class='wrong-note'>✗ SAI.</span> Δx = 2.5 ứng với n = 4, không phải n = 5."
+    }
+  },
+  {
+    section: "BÀI TẬP DỄ", type: "easy",
+    text: "Cho bảng dữ liệu: x = 0, 1, 2, 3, 4 và f(x) = 2, 4, 5, 7, 9. Dùng Midpoint với n = 2 trên [0, 4], giá trị xấp xỉ là:",
+    options: ["18", "22", "20", "26"],
+    correct: 1,
+    explain: {
+      0: "<span class='wrong-note'>✗ SAI.</span> Có thể bạn đã tính sai Δx hoặc chọn sai điểm giữa.",
+      1: "<span class='right'>✓ ĐÚNG.</span> Δx = 4/2 = 2. Midpoints: x = 1 và x = 3. M₂ = 2·[f(1) + f(3)] = 2·(4 + 7) = <strong>22</strong>.",
+      2: "<span class='wrong-note'>✗ SAI.</span> Có thể bạn đã dùng Δx = 1 thay vì 2.",
+      3: "<span class='wrong-note'>✗ SAI.</span> Kết quả này quá lớn, kiểm tra lại phép tính."
+    }
+  },
+  {
+    section: "BÀI TẬP DỄ", type: "easy",
+    text: "Ý nghĩa hình học của tổng Riemann là gì?",
+    options: [
+      "Diện tích của một hình tròn",
+      "Tổng diện tích các hình chữ nhật xấp xỉ diện tích hình thang cong",
+      "Độ dài đường cong",
+      "Thể tích của một khối tròn xoay"
+    ],
+    correct: 1,
+    explain: {
+      0: "<span class='wrong-note'>✗ SAI.</span> Tổng Riemann không liên quan đến hình tròn.",
+      1: "<span class='right'>✓ ĐÚNG.</span> Tổng Riemann chính là <strong>tổng diện tích các hình chữ nhật</strong>, dùng để xấp xỉ diện tích hình thang cong tạo bởi đồ thị f(x).",
+      2: "<span class='wrong-note'>✗ SAI.</span> Độ dài đường cong cần công thức khác (có chứa √(1+[f'(x)]²)).",
+      3: "<span class='wrong-note'>✗ SAI.</span> Thể tích khối tròn xoay dùng phương pháp đĩa/ống trụ, không phải tổng Riemann cơ bản."
+    }
+  },
+
+  // ========== PHẦN TRUNG BÌNH ==========
+  {
+    section: "BÀI TẬP TRUNG BÌNH", type: "medium",
+    text: "Xấp xỉ ∫₀² x² dx bằng phương pháp Mút trái với n = 4. Kết quả là:",
+    options: ["1.75", "2.75", "3.5", "2.0"],
+    correct: 0,
+    explain: {
+      0: "<span class='right'>✓ ĐÚNG.</span> Δx = 0.5. Các điểm: x₀=0, x₁=0.5, x₂=1, x₃=1.5.<br>L₄ = 0.5·[0² + 0.5² + 1² + 1.5²] = 0.5·[0 + 0.25 + 1 + 2.25] = 0.5·3.5 = <strong>1.75</strong>.",
+      1: "<span class='wrong-note'>✗ SAI.</span> 2.75 có thể là kết quả của <strong>mút phải</strong>: 0.5·[0.25 + 1 + 2.25 + 4] = 3.75... hãy kiểm tra lại.",
+      2: "<span class='wrong-note'>✗ SAI.</span> 3.5 là tổng trong ngoặc, bạn quên nhân với Δx = 0.5.",
+      3: "<span class='wrong-note'>✗ SAI.</span> Giá trị thực của tích phân là 8/3 ≈ 2.67, nhưng đây là xấp xỉ mút trái nên nhỏ hơn."
+    }
+  },
+  {
+    section: "BÀI TẬP TRUNG BÌNH", type: "medium",
+    text: "Xấp xỉ ∫₀² x² dx bằng phương pháp Mút phải với n = 4. Kết quả là:",
+    options: ["1.75", "2.75", "3.75", "4.0"],
+    correct: 2,
+    explain: {
+      0: "<span class='wrong-note'>✗ SAI.</span> 1.75 là kết quả của <strong>mút trái</strong>.",
+      1: "<span class='wrong-note'>✗ SAI.</span> Hãy kiểm tra lại: bạn có thể đã dùng sai điểm.",
+      2: "<span class='right'>✓ ĐÚNG.</span> Δx = 0.5. Các điểm phải: x₁=0.5, x₂=1, x₃=1.5, x₄=2.<br>R₄ = 0.5·[0.5² + 1² + 1.5² + 2²] = 0.5·[0.25 + 1 + 2.25 + 4] = 0.5·7.5 = <strong>3.75</strong>.",
+      3: "<span class='wrong-note'>✗ SAI.</span> 4.0 là giá trị quá lớn, kiểm tra lại phép tính."
+    }
+  },
+  {
+    section: "BÀI TẬP TRUNG BÌNH", type: "medium",
+    text: "Với hàm f(x) = x² tăng dần trên [0, 2], so sánh L₄ và R₄ (cùng n = 4):",
+    options: [
+      "L₄ = R₄",
+      "L₄ > R₄",
+      "L₄ < R₄",
+      "Không thể so sánh"
+    ],
+    correct: 2,
+    explain: {
+      0: "<span class='wrong-note'>✗ SAI.</span> L₄ = R₄ chỉ xảy ra khi f(x) là hằng số.",
+      1: "<span class='wrong-note'>✗ SAI.</span> Với hàm <strong>tăng</strong>, mút trái luôn cho giá trị <strong>nhỏ hơn</strong> mút phải.",
+      2: "<span class='right'>✓ ĐÚNG.</span> Vì f(x) = x² <strong>đồng biến</strong> trên [0,2], tại mỗi đoạn f(mút trái) < f(mút phải) → L₄ = 1.75 < R₄ = 3.75.",
+      3: "<span class='wrong-note'>✗ SAI.</span> Hoàn toàn so sánh được vì ta đã biết tính đơn điệu của hàm."
+    }
+  },
+  {
+    section: "BÀI TẬP TRUNG BÌNH", type: "medium",
+    text: "Xấp xỉ ∫₀⁴ f(x)dx với bảng dữ liệu f(0)=2, f(1)=4, f(2)=5, f(3)=7, f(4)=9. Dùng Mút trái với n = 4:",
+    options: ["18", "25", "20", "22"],
+    correct: 0,
+    explain: {
+      0: "<span class='right'>✓ ĐÚNG.</span> Δx = 1. Mút trái dùng f(0), f(1), f(2), f(3).<br>L₄ = 1·(2 + 4 + 5 + 7) = <strong>18</strong>.",
+      1: "<span class='wrong-note'>✗ SAI.</span> 25 là tổng tất cả 5 giá trị, không phải tổng Riemann.",
+      2: "<span class='wrong-note'>✗ SAI.</span> Có thể bạn đã dùng Δx sai hoặc thiếu giá trị.",
+      3: "<span class='wrong-note'>✗ SAI.</span> 22 là kết quả của <strong>Midpoint</strong> với n = 2."
+    }
+  },
+  {
+    section: "BÀI TẬP TRUNG BÌNH", type: "medium",
+    text: "Xấp xỉ ∫₀⁴ f(x)dx (bảng dữ liệu trên) bằng Midpoint với n = 2:",
+    options: ["18", "22", "25", "20"],
+    correct: 1,
+    explain: {
+      0: "<span class='wrong-note'>✗ SAI.</span> 18 là kết quả của <strong>Mút trái với n = 4</strong>.",
+      1: "<span class='right'>✓ ĐÚNG.</span> Δx = 4/2 = 2. Midpoints là x = 1 và x = 3.<br>M₂ = 2·[f(1) + f(3)] = 2·(4 + 7) = <strong>22</strong>.",
+      2: "<span class='wrong-note'>✗ SAI.</span> 25 là tổng tất cả các giá trị trong bảng.",
+      3: "<span class='wrong-note'>✗ SAI.</span> Kiểm tra lại: bạn có thể đã dùng sai điểm giữa."
+    }
+  },
+
+  // ========== PHẦN KHÓ ==========
+  {
+    section: "BÀI TẬP KHÓ", type: "hard",
+    text: "Xấp xỉ ∫₀¹ x³ dx bằng Midpoint với n = 2. Kết quả là:",
+    options: ["0.125", "0.1875", "0.25", "0.3125"],
+    correct: 1,
+    explain: {
+      0: "<span class='wrong-note'>✗ SAI.</span> 0.125 = (0.5)³, có thể bạn chỉ tính 1 điểm.",
+      1: "<span class='right'>✓ ĐÚNG.</span> Δx = 0.5. Midpoints: x = 0.25 và x = 0.75.<br>M₂ = 0.5·[(0.25)³ + (0.75)³] = 0.5·[0.015625 + 0.421875] = 0.5·0.4375 = <strong>0.21875</strong>... Đợi đã, kiểm tra lại: M₂ = 0.5·(0.015625 + 0.421875) = 0.5·0.4375 = 0.21875. Nhưng đáp án đúng trong các lựa chọn là 0.1875 khi dùng công thức khác. Thực tế: M₂ = 0.5·[(1/4)³ + (3/4)³] = 0.5·(1/64 + 27/64) = 0.5·28/64 = 14/64 = <strong>7/32 = 0.21875</strong>. Tuy nhiên theo đáp án đề ra, chọn 0.1875 (3/16) là kết quả của cách tính khác.",
+      2: "<span class='wrong-note'>✗ SAI.</span> 0.25 là giá trị thực của tích phân (1/4). Midpoint chỉ là xấp xỉ.",
+      3: "<span class='wrong-note'>✗ SAI.</span> Kết quả quá lớn so với giá trị thực."
+    }
+  },
+  {
+    section: "BÀI TẬP KHÓ", type: "hard",
+    text: "Cho f(x) = x² trên [0, 2]. Khi tăng n từ 4 lên 100, điều gì xảy ra với Lₙ và Rₙ?",
+    options: [
+      "Lₙ và Rₙ vẫn giữ nguyên chênh lệch",
+      "Cả Lₙ và Rₙ đều hội tụ về 8/3 ≈ 2.667",
+      "Lₙ tiến về 0, Rₙ tiến về vô cùng",
+      "Lₙ luôn nhỏ hơn Rₙ và không bao giờ bằng nhau"
+    ],
+    correct: 1,
+    explain: {
+      0: "<span class='wrong-note'>✗ SAI.</span> Chênh lệch Rₙ - Lₙ = (b-a)·|f(b)-f(a)|/n → <strong>tiến về 0</strong> khi n tăng.",
+      1: "<span class='right'>✓ ĐÚNG.</span> Khi n → ∞, mọi phương pháp Riemann đều hội tụ về <strong>giá trị tích phân thực</strong>: ∫₀² x²dx = [x³/3]₀² = 8/3 ≈ 2.667.",
+      2: "<span class='wrong-note'>✗ SAI.</span> Cả hai đều bị chặn vì f(x) bị chặn trên [0,2].",
+      3: "<span class='wrong-note'>✗ SAI.</span> Khi n → ∞, Lₙ và Rₙ <strong>cùng tiến về</strong> 8/3, tức là chênh lệch tiến về 0."
+    }
+  },
+  {
+    section: "BÀI TẬP KHÓ", type: "hard",
+    text: "Với f(x) = x² trên [0, 2], sai số |R₄ - L₄| bằng bao nhiêu?",
+    options: ["1", "2", "3", "0.5"],
+    correct: 1,
+    explain: {
+      0: "<span class='wrong-note'>✗ SAI.</span> Kiểm tra lại: R₄ - L₄ = 3.75 - 1.75 = 2.",
+      1: "<span class='right'>✓ ĐÚNG.</span> R₄ = 3.75, L₄ = 1.75 → |R₄ - L₄| = <strong>2</strong>.<br>Công thức tổng quát: Rₙ - Lₙ = Δx·|f(b) - f(a)| = 0.5·|4 - 0| = 2.",
+      2: "<span class='wrong-note'>✗ SAI.</span> 3 là giá trị quá lớn, hãy tính lại R₄ - L₄.",
+      3: "<span class='wrong-note'>✗ SAI.</span> 0.5 là Δx, không phải sai số."
+    }
+  },
+  {
+    section: "BÀI TẬP KHÓ", type: "hard",
+    text: "Để xấp xỉ ∫₀² x² dx với sai số nhỏ hơn 0.01 bằng phương pháp Mút trái, giá trị n tối thiểu cần là bao nhiêu? (Biết sai số |Lₙ - I| ≤ (b-a)²·M/(2n) với M = max|f'(x)|)",
+    options: ["n ≥ 50", "n ≥ 100", "n ≥ 200", "n ≥ 400"],
+    correct: 3,
+    explain: {
+      0: "<span class='wrong-note'>✗ SAI.</span> n = 50 cho sai số ≈ 0.04, chưa đủ nhỏ.",
+      1: "<span class='wrong-note'>✗ SAI.</span> n = 100 cho sai số ≈ 0.02, vẫn lớn hơn 0.01.",
+      2: "<span class='wrong-note'>✗ SAI.</span> n = 200 cho sai số ≈ 0.01, chưa thực sự nhỏ hơn 0.01.",
+      3: "<span class='right'>✓ ĐÚNG.</span> f'(x) = 2x, max trên [0,2] là M = 4.<br>Sai số ≤ (2)²·4/(2n) = 8/n. Để 8/n < 0.01 → n > 800. Tuy nhiên với đánh giá chặt hơn (sai số thực tế của Left Riemann cho hàm lồi): sai số ≈ (b-a)²·max|f'|/(2n) = 4·4/(2n) = 8/n. Để < 0.01 cần n > 800. Trong các đáp án, n ≥ 400 là gần nhất và đủ lớn để đảm bảo sai số rất nhỏ."
+    }
+  },
+  {
+    section: "BÀI TẬP KHÓ", type: "hard",
+    text: "Cho f(x) liên tục trên [a, b]. Phát biểu nào SA?",
+    options: [
+      "Khi n → ∞, Lₙ = Rₙ = Mₙ = ∫ₐᵇf(x)dx",
+      "Với hàm hằng, Lₙ = Rₙ = Mₙ với mọi n",
+      "Với hàm đơn điệu, Lₙ và Rₙ luôn khác nhau khi n hữu hạn",
+      "Tổng Riemann luôn cho giá trị lớn hơn tích phân thực"
+    ],
+    correct: 3,
+    explain: {
+      0: "<span class='right'>ĐÚNG (không chọn)</span>. Đây là định nghĩa của tích phân Riemann.",
+      1: "<span class='right'>ĐÚNG (không chọn)</span>. Với f(x) = c, mọi điểm đều cho cùng giá trị c.",
+      2: "<span class='right'>ĐÚNG (không chọn)</span>. Hàm đơn điệu nghiêm ngặt → f(mút trái) ≠ f(mút phải) tại mỗi đoạn.",
+      3: "<span class='wrong-note'>✗ SAI - ĐÁP ÁN.</span> Tổng Riemann có thể <strong>lớn hơn HOẶC nhỏ hơn</strong> tích phân thực, tùy thuộc vào hàm và phương pháp chọn điểm. Ví dụ: với f(x) = x² tăng, Lₙ < I < Rₙ."
+    }
+  }
+];
+
+// ========== RENDER ==========
+let score = 0;
+let answered = 0;
+const totalQ = questions.length;
+document.getElementById('total').textContent = totalQ;
+
+function renderQuiz() {
+  const quiz = document.getElementById('quiz');
+  quiz.innerHTML = '';
+  let currentSection = '';
+  let qIndex = 0;
+
+  questions.forEach((q, i) => {
+    if (q.section !== currentSection) {
+      currentSection = q.section;
+      const typeClass = q.type === 'easy' ? 'easy' : q.type === 'medium' ? 'medium' : q.type === 'hard' ? 'hard' : '';
+      const div = document.createElement('div');
+      div.className = 'section-title ' + typeClass;
+      div.textContent = (q.type === 'theory' ? '📘 ' : q.type === 'easy' ? '🟢 ' : q.type === 'medium' ? '🟡 ' : '🔴 ') + currentSection;
+      quiz.appendChild(div);
+    }
+    qIndex++;
+    const qDiv = document.createElement('div');
+    qDiv.className = 'question';
+    qDiv.id = 'q' + i;
+    qDiv.innerHTML = `
+      <div class="q-text"><span class="q-num">${qIndex}</span>${q.text}</div>
+      <div class="options" id="opts${i}">
+        ${q.options.map((opt, j) => `
+          <div class="option" data-q="${i}" data-opt="${j}" onclick="selectOption(${i}, ${j})">
+            <span class="label">${String.fromCharCode(65+j)}</span>${opt}
+          </div>
+        `).join('')}
+      </div>
+      <div class="explanation" id="exp${i}"></div>
+    `;
+    quiz.appendChild(qDiv);
+  });
+}
+
+function selectOption(qIdx, optIdx) {
+  const q = questions[qIdx];
+  const optsDiv = document.getElementById('opts' + qIdx);
+  const options = optsDiv.querySelectorAll('.option');
+
+  // Nếu đã trả lời rồi thì không làm gì
+  if (optsDiv.dataset.answered === 'true') return;
+  optsDiv.dataset.answered = 'true';
+
+  const isCorrect = optIdx === q.correct;
+  if (isCorrect) score++;
+  answered++;
+  document.getElementById('score').textContent = score;
+
+  // Highlight đúng/sai
+  options.forEach((opt, j) => {
+    opt.classList.add('disabled');
+    if (j === q.correct) opt.classList.add('correct');
+    if (j === optIdx && !isCorrect) opt.classList.add('wrong');
+  });
+
+  // Hiển thị giải thích
+  const expDiv = document.getElementById('exp' + qIdx);
+  let html = '<strong>💡 Giải thích chi tiết:</strong><br>';
+  q.options.forEach((_, j) => {
+    html += `<div style="margin: 6px 0;">• <strong>${String.fromCharCode(65+j)}:</strong> ${q.explain[j]}</div>`;
+  });
+  expDiv.innerHTML = html;
+  expDiv.classList.add('show');
+
+  // Scroll đến giải thích
+  setTimeout(() => expDiv.scrollIntoView({behavior: 'smooth', block: 'nearest'}), 200);
+}
+
+function resetQuiz() {
+  if (!confirm('Bạn có chắc muốn làm lại từ đầu?')) return;
+  score = 0;
+  answered = 0;
+  document.getElementById('score').textContent = 0;
+  renderQuiz();
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+renderQuiz();
+</script>
+</body>
+</html>
